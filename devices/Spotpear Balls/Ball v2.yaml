@@ -33,6 +33,7 @@ substitutions:
   voice_assist_muted_phase_id: "12"
   voice_assist_timer_finished_phase_id: "20"
   voice_assist_screensaver_phase_id: "30"
+  voice_assist_sleep_phase_id: "31"
 
   # These unique characters have been extracted from every test file of every language available on https://github.com/home-assistant/intents (14 March 2024)
   # However, the Figtree font only contains Latin characters, so there is no point using this... unlessyou change the font configuration accordingly.
@@ -454,6 +455,10 @@ script:
                                 id(s3_box_lcd).show_page(screensaver_page);
                                 id(s3_box_lcd).update();
                                 break;
+                              case ${voice_assist_sleep_phase_id}:
+                                id(s3_box_lcd).show_page(sleep_page);
+                                id(s3_box_lcd).update();
+                                break;
                               default:
                                 id(s3_box_lcd).show_page(idle_page);
                                 id(s3_box_lcd).update();
@@ -472,15 +477,21 @@ script:
     then:
       - if:
           condition:
-            lambda: return id(voice_assistant_phase) == ${voice_assist_screensaver_phase_id};
+            lambda: return id(voice_assistant_phase) == ${voice_assist_screensaver_phase_id} || id(voice_assistant_phase) == ${voice_assist_sleep_phase_id};
           then:
             - script.execute: set_idle_or_mute_phase
             - script.execute: draw_display
+            # Restore normal brightness when waking from sleep/screensaver
+            - lambda: |-
+                auto call = id(Sled).make_call();
+                call.set_brightness(1.0);
+                call.perform();
       - if:
           condition:
             switch.is_on: screensaver_enabled
           then:
             - script.stop: screensaver_timer
+            - script.stop: sleep_timer
             - script.execute: screensaver_timer
 
   - id: screensaver_timer
@@ -491,6 +502,22 @@ script:
             switch.is_on: screensaver_enabled
           then:
             - lambda: id(voice_assistant_phase) = ${voice_assist_screensaver_phase_id};
+            - script.execute: draw_display
+            # Start sleep timer when screensaver activates
+            - if:
+                condition:
+                  switch.is_on: sleep_enabled
+                then:
+                  - script.execute: sleep_timer
+
+  - id: sleep_timer
+    then:
+      - delay: !lambda "return id(sleep_timeout_minutes).state * 60 * 1000;"
+      - if:
+          condition:
+            switch.is_on: sleep_enabled
+          then:
+            - lambda: id(voice_assistant_phase) = ${voice_assist_sleep_phase_id};
             - script.execute: draw_display
 
   - id: fetch_first_active_timer
@@ -656,12 +683,39 @@ switch:
       - script.execute: reset_screensaver_timer
     on_turn_off:
       - script.stop: screensaver_timer
+      - script.stop: sleep_timer
       - if:
           condition:
-            lambda: return id(voice_assistant_phase) == ${voice_assist_screensaver_phase_id};
+            lambda: return id(voice_assistant_phase) == ${voice_assist_screensaver_phase_id} || id(voice_assistant_phase) == ${voice_assist_sleep_phase_id};
           then:
             - script.execute: set_idle_or_mute_phase
             - script.execute: draw_display
+            # Restore normal brightness
+            - lambda: |-
+                auto call = id(Sled).make_call();
+                call.set_brightness(1.0);
+                call.perform();
+
+  - platform: template
+    name: Sleep Mode Enabled
+    id: sleep_enabled
+    icon: "mdi:sleep"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+    on_turn_off:
+      - script.stop: sleep_timer
+      - if:
+          condition:
+            lambda: return id(voice_assistant_phase) == ${voice_assist_sleep_phase_id};
+          then:
+            - script.execute: set_idle_or_mute_phase
+            - script.execute: draw_display
+            # Restore normal brightness
+            - lambda: |-
+                auto call = id(Sled).make_call();
+                call.set_brightness(1.0);
+                call.perform();
 
   - platform: template
     id: timer_ringing
@@ -721,6 +775,28 @@ number:
             - script.execute: reset_screensaver_timer
 
   - platform: template
+    name: "Sleep Timeout"
+    id: sleep_timeout_minutes
+    icon: "mdi:timer-sleep"
+    optimistic: true
+    restore_value: true
+    initial_value: 20
+    min_value: 1
+    max_value: 120
+    step: 1
+    unit_of_measurement: "min"
+    entity_category: config
+    on_value:
+      - if:
+          condition:
+            and:
+              - switch.is_on: sleep_enabled
+              - lambda: return id(voice_assistant_phase) == ${voice_assist_screensaver_phase_id};
+          then:
+            - script.stop: sleep_timer
+            - script.execute: sleep_timer
+
+  - platform: template
     name: "Screensaver Brightness"
     id: screensaver_brightness
     icon: "mdi:brightness-6"
@@ -730,6 +806,19 @@ number:
     min_value: 0
     max_value: 100
     step: 5
+    unit_of_measurement: "%"
+    entity_category: config
+
+  - platform: template
+    name: "Sleep Brightness"
+    id: sleep_brightness
+    icon: "mdi:brightness-1"
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: 0
+    max_value: 50
+    step: 1
     unit_of_measurement: "%"
     entity_category: config
 
@@ -1020,6 +1109,14 @@ display:
           
           // Display animated GIF or static image
           it.image((it.get_width() / 2), (it.get_height() / 2), id(screensaver_animation), ImageAlign::CENTER);
+      - id: sleep_page
+        lambda: |-
+          it.fill(Color::BLACK);
+          // Set sleep brightness (very dim or off)
+          auto brightness = id(sleep_brightness).state / 100.0;
+          auto call = id(Sled).make_call();
+          call.set_brightness(brightness);
+          call.perform();
 
 interval:
   - interval: 100ms
