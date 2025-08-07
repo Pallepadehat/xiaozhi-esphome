@@ -937,7 +937,7 @@ image:
     type: RGB
     transparency: alpha_channel
   # Screensaver image - nice animated screensaver for ESPHome
-  - file: https://github.com/esphome/wake-word-voice-assistants/raw/main/common/media/screensaver.gif
+  - file: https://github.com/Pallepadehat/xiaozhi-esphome/blob/main/images/media/screensaver.gif
     id: screensaver_gif
     resize: 240x240
     type: RGB
@@ -945,7 +945,7 @@ image:
 
 animation:
   # For animated GIFs - ESPHome supports animated images
-  - file: https://github.com/esphome/wake-word-voice-assistants/raw/main/common/media/screensaver.gif
+  - file: https://github.com/Pallepadehat/xiaozhi-esphome/blob/main/images/media/screensaver.gif
     id: screensaver_animation
     resize: 240x240
     type: RGB
