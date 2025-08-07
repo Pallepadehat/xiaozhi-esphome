@@ -77,6 +77,8 @@ psram:
   speed: 80MHz
 
 api:
+  # API optimizations for better performance
+  reboot_timeout: 0s  # Disable automatic reboot on API connection loss
   on_client_connected:
     - script.execute: draw_display
   on_client_disconnected:
@@ -88,10 +90,22 @@ ota:
 
 logger:
   hardware_uart: USB_SERIAL_JTAG
+  # Optimized logging level for production (reduces CPU overhead)
+  level: INFO
+  # Reduce log buffer size for memory optimization
+  logs:
+    component: ERROR
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  # Performance optimizations for faster, more reliable connection
+  fast_connect: true
+  power_save_mode: light
+  # Enable IPv6 disabled by default for better compatibility
+  enable_ipv6: false
+  # Auto-retry connection if lost
+  reboot_timeout: 15min
   ap:
     ssid: "Ball v2 Hotspot"
     password: "RZ7D3EzJdPM6"
@@ -937,7 +951,7 @@ image:
     type: RGB
     transparency: alpha_channel
   # Screensaver image - nice animated screensaver for ESPHome
-  - file: https://github.com/Pallepadehat/xiaozhi-esphome/blob/main/images/media/screensaver.gif
+  - file: https://raw.githubusercontent.com/Pallepadehat/xiaozhi-esphome/main/images/media/screensaver.gif
     id: screensaver_gif
     resize: 240x240
     type: RGB
@@ -945,7 +959,7 @@ image:
 
 animation:
   # For animated GIFs - ESPHome supports animated images
-  - file: https://github.com/Pallepadehat/xiaozhi-esphome/blob/main/images/media/screensaver.gif
+  - file: https://raw.githubusercontent.com/Pallepadehat/xiaozhi-esphome/main/images/media/screensaver.gif
     id: screensaver_animation
     resize: 240x240
     type: RGB
