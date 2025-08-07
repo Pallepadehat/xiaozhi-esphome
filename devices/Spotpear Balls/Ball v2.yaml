@@ -13,7 +13,7 @@ substitutions:
   timer_finished_illustration_file: https://github.com/RealDeco/xiaozhi-esphome/raw/main/images/${imagemodel}/240x240/timer_finished.png
 
   # Screensaver configuration
-  screensaver_gif_url: "https://github.com/your-repo/screensaver-gifs/raw/main/default_screensaver.gif"
+  # screensaver_gif_url: removed - now using hardcoded URL in image definitions
   screensaver_timeout: "300" # 5 minutes in seconds
 
   loading_illustration_background_color: "000000"
@@ -822,16 +822,7 @@ number:
     unit_of_measurement: "%"
     entity_category: config
 
-text:
-  - platform: template
-    name: "Screensaver GIF URL"
-    id: screensaver_gif_url_input
-    icon: "mdi:image-outline"
-    optimistic: true
-    restore_value: true
-    initial_value: "${screensaver_gif_url}"
-    entity_category: config
-    mode: text
+# Removed screensaver URL text input - now using hardcoded URL
 
 select:
   - platform: template
@@ -945,8 +936,8 @@ image:
     resize: 240x240
     type: RGB
     transparency: alpha_channel
-  # Screensaver image - you can change this URL to your preferred GIF
-  - file: !lambda "return id(screensaver_gif_url_input).state.c_str();"
+  # Screensaver image - nice animated screensaver for ESPHome
+  - file: https://github.com/esphome/wake-word-voice-assistants/raw/main/common/media/screensaver.gif
     id: screensaver_gif
     resize: 240x240
     type: RGB
@@ -954,7 +945,7 @@ image:
 
 animation:
   # For animated GIFs - ESPHome supports animated images
-  - file: !lambda "return id(screensaver_gif_url_input).state.c_str();"
+  - file: https://github.com/esphome/wake-word-voice-assistants/raw/main/common/media/screensaver.gif
     id: screensaver_animation
     resize: 240x240
     type: RGB
